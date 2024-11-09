@@ -1,0 +1,25 @@
+Гарантия доставки
+at least once - минимум один раз
+at most once - максимум один раз
+exactly once - точно один раз
+
+Kafka Connect
+конвейер данных для Kafka.
+например из MySQL в Elasticsearch.
+
+Аутентификация
+SSL
+SASL
+Повторная аутентификация
+
+Шифрование
+
+Авторизация
+AclAuthorization
+
+Аудит
+
+Kafka Streams
+обзор архитектуры
+
+Мониторинг Kafka
