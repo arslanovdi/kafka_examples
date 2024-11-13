@@ -5,7 +5,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde"
-	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde/avro"
+	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde/avrov2"
 	"kafka_examples/schema-registry/model"
 	"log/slog"
 	"sync"
@@ -30,7 +30,7 @@ func (sr *avroProducer) ProduceMessage(key string, msg model.Human, topic string
 	sr.senders.Add(1)
 	defer sr.senders.Done()
 
-	payload, err := sr.serializer.Serialize(topic, msg)
+	payload, err := sr.serializer.Serialize(topic, &msg)
 	if err != nil {
 		return nullOffset, err
 	}
@@ -81,10 +81,10 @@ func NewProducer(brokers string, srURL string) (*avroProducer, error) {
 		return nil, err
 	}
 
-	avrocfg := avro.NewSerializerConfig()
+	avrocfg := avrov2.NewSerializerConfig()
 	avrocfg.AutoRegisterSchemas = true
 
-	serializer, err := avro.NewGenericSerializer(
+	serializer, err := avrov2.NewSerializer(
 		sr,
 		serde.ValueSerde,
 		avrocfg)

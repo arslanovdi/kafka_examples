@@ -5,7 +5,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde"
-	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde/avro"
+	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde/avrov2"
 	"kafka_examples/schema-registry/model"
 	"log/slog"
 	"sync"
@@ -19,7 +19,7 @@ const (
 
 type srConsumer struct {
 	consumer     *kafka.Consumer
-	deserializer *avro.GenericDeserializer
+	deserializer *avrov2.Deserializer
 	stop         bool           // command to stop reading messages
 	readers      sync.WaitGroup // runned readers
 }
@@ -42,10 +42,10 @@ func NewConsumer(brokers string, srURL string, group string) (*srConsumer, error
 		return nil, err
 	}
 
-	deserializercfg := avro.NewDeserializerConfig()
+	deserializercfg := avrov2.NewDeserializerConfig()
 	deserializercfg.UseLatestVersion = true
 
-	deserializer, err := avro.NewGenericDeserializer(sr, serde.ValueSerde, deserializercfg)
+	deserializer, err := avrov2.NewDeserializer(sr, serde.ValueSerde, deserializercfg)
 	if err != nil {
 		return nil, err
 	}
