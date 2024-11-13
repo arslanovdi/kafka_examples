@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+option go_package = "./pkg/kafkaExample.v1";
+
+package kafkaExample.v1;
+
+message ExampleMessage {
+  int32 Id = 1;
+  string Name = 2;
+  int32 Age = 3;
+  bool Student = 4;
+  optional string City = 5;
+}
