@@ -4,6 +4,7 @@ go 1.23.3
 
 require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.6.0
+	github.com/go-jose/go-jose/v4 v4.0.4
 	google.golang.org/protobuf v1.33.0
 )
 
