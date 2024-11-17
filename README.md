@@ -1,16 +1,31 @@
-examples with kafka
+## Apache Kafka - платформа потоковой передачи событий.
 
-single messages - одиночные сообщения producer/consumer
+Для использования библиотеки [confluent-kafka-go](https://github.com/confluentinc/confluent-kafka-go) должен быть установлен
+```go
+CGO_ENABLED=1
+```
 
-batch messages - батчи producer/consumer // EXPERIMENTAL
+## Examples
 
-## schema registry
-Пример producer/consumer с использованием schema registry, сериализацией в форматах protobuf/avro/json
+### single messages
+одиночные сообщения producer/consumer
 
-transaction - использование транзакций.
+### batch messages
+батчи producer/consumer // EXPERIMENTAL
 
-kafka sreams - использование kafka sreams, пример
+### schema registry
+[Пример producer/consumer с использованием schema registry, сериализацией в форматах protobuf/avro/json](https://github.com/arslanovdi/kafka_examples/tree/master/schema-registry)
 
-authentication - пример аутентификации
+### [exactly once](https://github.com/arslanovdi/kafka_examples/tree/master/exactly-once)
+- [kafka-kafka](https://github.com/arslanovdi/kafka_examples/tree/master/exactly-once/kafka-kafka)
+- kafka-postgres
 
-partitioner - пример своей реализации разбиения ключей по партициям
+### kafka sreams
+использование kafka sreams
+
+### authentication
+пример аутентификации
+
+### partitioner
+пример своей реализации разбиения ключей по партициям
+
