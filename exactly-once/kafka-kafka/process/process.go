@@ -45,6 +45,7 @@ loop:
 				break loop
 			}
 			slog.Error("transaction error: ", slog.String("error", err.Error())) // неизвестная ошибка
+			break loop
 		}
 	}
 }

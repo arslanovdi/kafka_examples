@@ -7,11 +7,16 @@ CGO_ENABLED=1
 ## Documentation
 [Apache kafka](https://kafka.apache.org/documentation/)
 
+[Kafka Improvement Proposals](https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Improvement+Proposals)
+
+[Introduction to librdkafka](https://github.com/confluentinc/librdkafka/blob/master/INTRODUCTION.md)
+
 [librdkafka configuration properties](https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md)
 
 [Confluent-kafka-go](https://github.com/confluentinc/confluent-kafka-go)
 
 [docs.confluent.io](https://docs.confluent.io/platform/current/clients/confluent-kafka-go/index.html)
+
 
 ## Examples
 
@@ -34,8 +39,8 @@ CGO_ENABLED=1
 ### authentication
 пример аутентификации
 
-### partitioner
-пример своей реализации разбиения ключей по партициям
+### rebalance
+[Пример обработки событий ребалансировки партиций](https://github.com/arslanovdi/kafka_examples/tree/master/rebalance)
 
 ### librdkafka statistics from consumer events
 [Получаем метрики kafka кластера через события консюмера](https://github.com/arslanovdi/kafka_examples/tree/master/stats)

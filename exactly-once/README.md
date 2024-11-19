@@ -20,6 +20,8 @@
 
 Второй вариант например использует Kafka Connect.
 
+По поддержке участия Kafka в 2PC создан [KIP-939](https://cwiki.apache.org/confluence/display/KAFKA/KIP-939%3A+Support+Participation+in+2PC).
+
 # Overview
 Гарантия Exactly Once (точно один раз) в kafka представляет собой сочетание 2-х особенностей:
 - идемпотентный продюсер
