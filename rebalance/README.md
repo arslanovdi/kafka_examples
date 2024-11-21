@@ -92,4 +92,4 @@ return nil
 При использовании этого протокола роль лидера группы (участника) устраняется, а назначение рассчитывается координатором группы (брокером) и отправляется каждому участнику посредством тактовых импульсов.
 
 Для его тестирования необходимо настроить кластер Kafka в режиме KRaft и включить новый групповой протокол с помощью свойства `group.coordinator.rebalance.protocols`.
-Версия брокера должна быть Apache Kafka 3.7.0 или более поздняя. См. Apache Kafka [Release Notes](https://cwiki.apache.org/confluence/display/KAFKA/The+Next+Generation+of+the+Consumer+Rebalance+Protocol+%28KIP-848%29+-+Early+Access+Release+Notes).
+Версия брокера должна быть Apache Kafka 3.7.0 или более поздняя. См. [Apache Kafka Release Notes](https://cwiki.apache.org/confluence/display/KAFKA/The+Next+Generation+of+the+Consumer+Rebalance+Protocol+%28KIP-848%29+-+Early+Access+Release+Notes).

@@ -21,10 +21,10 @@ CGO_ENABLED=1
 ## Examples
 
 ### single messages
-одиночные сообщения producer/consumer
+[одиночные сообщения producer/consumer](https://github.com/arslanovdi/kafka_examples/tree/master/single-message)
 
-### batch messages
-батчи producer/consumer // EXPERIMENTAL
+### Батчинг и сжатие сообщений
+[Пример](https://github.com/arslanovdi/kafka_examples/tree/master/batch_messages)
 
 ### schema registry
 [Пример producer/consumer с использованием schema registry, сериализацией в форматах protobuf/avro/json](https://github.com/arslanovdi/kafka_examples/tree/master/schema-registry)
