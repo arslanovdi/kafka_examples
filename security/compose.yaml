@@ -1,0 +1,220 @@
+services:
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "9001:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: kafka_examples
+      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: kafka1:9091,kafka2:9091,kafka3:9091
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9997
+      KAFKA_CLUSTERS_0_METRICS_TYPE: JMX # JMX or prometheus, default: JMX
+      DYNAMIC_CONFIG_ENABLED: 'true'                                          # позволяет изменять конфиг kafka-ui в реальном времени
+      # SSL
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: SSL
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_LOCATION: /kafka.keystore.jks
+      KAFKA_CLUSTERS_0_SSL_TRUSTSTORELOCATION: /kafka.truststore.jks
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: '' # DISABLE COMMON NAME VERIFICATION
+
+    volumes:
+      - type: bind
+        source: ./certs/kafka.keystore.jks
+        target: /kafka.keystore.jks
+      - type: bind
+        source: ./certs/kafka.truststore.jks
+        target: /kafka.truststore.jks
+    networks:
+      - kafka_lan
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+
+  kafka1:
+    container_name: kafka1
+    hostname: kafka1
+    image: confluentinc/cp-kafka:latest
+    restart: unless-stopped
+    ports:
+      - "29092:29092"                                                                  # открываем порт для подключения клиентов, извне контейнера
+    environment:
+      # KAFKA CLUSTER
+      KAFKA_NODE_ID: 1                                                                 # Уникальный идентификатор узла в кластере
+      CLUSTER_ID: HE5uOlWcSg6jiUydVtaRzQ                                               # Генерируем идентификатор кластера: docker compose exec kafka1 kafka-storage.sh random-uuid
+      KAFKA_PROCESS_ROLES: broker,controller                                           # узел может входить в кворум как контроллер и как брокер
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka1:9093,2@kafka2:9093,3@kafka3:9093        # список нод, для кворума (здесь нужно перечислить адреса всех известных контроллеров)
+      # LISTENERS
+      KAFKA_LISTENERS: INTERNAL://:9091,CONTROLLER://:9093,EXTERNAL://:29092           # публикуем порты на которые брокер будет принимать сообщения
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://:9091,EXTERNAL://127.0.0.1:29092          # публикуем порты для подключения клиентов
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:SSL,INTERNAL:SSL,EXTERNAL:SSL   # список листенеров с протоколами доступа
+      # BROKER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL                                       # название слушателя для брокера, основная цель - репликация разделов
+      KAFKA_BROKER_ID: 1
+      # CONTROLLER
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER                                      # название слушателя для контроллера
+      # CLIENT
+      KAFKA_CLIENT_LISTENER_NAME: EXTERNAL                                             # название слушателя для клиента
+      # COMMON SETTIGNS
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true                                            # разрешаем автоматическое создание топиков
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 2
+      KAFKA_JMX_PORT: 9997
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka1 -Dcom.sun.management.jmxremote.rmi.port=9997
+      KAFKA_LOG_DIRS: '/tmp/kafka-logs' # default: /tmp/kafka-logs
+      # SSL use pem files
+      KAFKA_SSL_KEYSTORE_TYPE: PEM
+      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka1-keypair.pem
+      KAFKA_SSL_KEY_PASSWORD: Dy45Gi@56
+      KAFKA_SSL_TRUESTORE_TYPE: PEM
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/root.crt
+      # SSL clients
+      KAFKA_SSL_CLIENT_AUTH: "required"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+    networks:
+      - kafka_lan
+    volumes:
+      - kafka1data:/kafka/data
+      - type: bind
+        source: ./certs/kafka1-keypair.pem
+        target: /etc/kafka/secrets/kafka1-keypair.pem
+      - type: bind
+        source: ./certs/root.crt
+        target: /etc/kafka/secrets/root.crt
+    healthcheck:
+      # проверка состояния контейнера. проверка происходит по готовности порта 9091
+      test: "bash -c 'printf \"\" > /dev/tcp/127.0.0.1/9091; exit $$?;'"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  kafka2:
+    container_name: kafka2
+    hostname: kafka2
+    image: confluentinc/cp-kafka:latest
+    restart: unless-stopped
+    ports:
+      - "29093:29093"
+    environment:
+      # KAFKA CLUSTER
+      KAFKA_NODE_ID: 2
+      CLUSTER_ID: HE5uOlWcSg6jiUydVtaRzQ
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka1:9093,2@kafka2:9093,3@kafka3:9093
+      # LISTENERS
+      KAFKA_LISTENERS: INTERNAL://:9091,CONTROLLER://:9093,EXTERNAL://:29093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://:9091,EXTERNAL://127.0.0.1:29093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:SSL,INTERNAL:SSL,EXTERNAL:SSL
+      # BROKER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_BROKER_ID: 2
+      # CONTROLLER
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # CLIENT
+      KAFKA_CLIENT_LISTENER_NAME: EXTERNAL
+      # COMMON SETTIGNS
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 2
+      KAFKA_JMX_PORT: 9997
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka2 -Dcom.sun.management.jmxremote.rmi.port=9997
+      KAFKA_LOG_DIRS: '/tmp/kafka-logs'
+      # SSL use pem files
+      KAFKA_SSL_KEYSTORE_TYPE: PEM
+      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka2-keypair.pem
+      KAFKA_SSL_KEY_PASSWORD: Dy45Gi@56
+      KAFKA_SSL_TRUESTORE_TYPE: PEM
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/root.crt
+      # SSL clients
+      KAFKA_SSL_CLIENT_AUTH: "required"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+    networks:
+      - kafka_lan
+    volumes:
+      - kafka2data:/kafka/data
+      - type: bind
+        source: ./certs/kafka2-keypair.pem
+        target: /etc/kafka/secrets/kafka2-keypair.pem
+      - type: bind
+        source: ./certs/root.crt
+        target: /etc/kafka/secrets/root.crt
+    healthcheck:
+      # проверка состояния контейнера. проверка происходит по готовности порта 9091
+      test: "bash -c 'printf \"\" > /dev/tcp/127.0.0.1/9091; exit $$?;'"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  kafka3:
+    container_name: kafka3
+    hostname: kafka3
+    image: confluentinc/cp-kafka:latest
+    restart: unless-stopped
+    ports:
+      - "29094:29094"
+    environment:
+      # KAFKA CLUSTER
+      KAFKA_NODE_ID: 3
+      CLUSTER_ID: HE5uOlWcSg6jiUydVtaRzQ
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka1:9093,2@kafka2:9093,3@kafka3:9093
+      # LISTENERS
+      KAFKA_LISTENERS: INTERNAL://:9091,CONTROLLER://:9093,EXTERNAL://:29094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://:9091,EXTERNAL://127.0.0.1:29094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:SSL,INTERNAL:SSL,EXTERNAL:SSL
+      # BROKER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_BROKER_ID: 3
+      # CONTROLLER
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # CLIENT
+      KAFKA_CLIENT_LISTENER_NAME: EXTERNAL
+      # COMMON SETTIGNS
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 2
+      KAFKA_JMX_PORT: 9997
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka3 -Dcom.sun.management.jmxremote.rmi.port=9997
+      KAFKA_LOG_DIRS: '/tmp/kafka-logs'
+      # SSL provide certs as string
+      KAFKA_SSL_KEYSTORE_TYPE: PEM
+      KAFKA_SSL_KEYSTORE_CERTIFICATE_CHAIN: -----BEGIN CERTIFICATE-----\nMIIDtDCCApygAwIBAgIUBXt5dsJTIoVkuds8vt0KHBshQRMwDQYJKoZIhvcNAQEL\nBQAwYzEdMBsGA1UEAwwUcm9vdC5rYWZrYWV4YW1wbGUucnUxDTALBgNVBAsMBFRF\nU1QxFTATBgNVBAoMDEthZmthRXhhbXBsZTEPMA0GA1UEBwwGTW9zY293MQswCQYD\nVQQGEwJSVTAeFw0yNDExMjQwOTQwMDJaFw0yNTExMjQwOTQwMDJaMGMxHTAbBgNV\nBAMMFHJvb3Qua2Fma2FleGFtcGxlLnJ1MQ0wCwYDVQQLDARURVNUMRUwEwYDVQQK\nDAxLYWZrYUV4YW1wbGUxDzANBgNVBAcMBk1vc2NvdzELMAkGA1UEBhMCUlUwggEi\nMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC8Npu3mE4lzXSjdyBbT1lTs4wm\n7tn3AX+NJGBy4CMhE052a4FO45e6YF8FwJDiLIEQnur4A2njnsPD6v8okreAAl9s\nLuv8QPxc5nu+FedNKKzeeV2ILmLmHDQh7wdZBqVe3f9BDStVBGLnCzZqEAUhCdBm\nls2POiJavtRKFuC/OV6FArskZ3I6uFELm4RtrjvfO4dUQLlA7yMI/pEdZbXV2lDM\nvT4Je6kfk5zcfVWMFvCD41TM3BTkDiPUiW6F3M+K1yZKnK+9we8evlJHqHq9Tc3y\n9PKcvm4/Rvxa4uEBocm/xSh/oGCMMy9K7Kdc3u7jocDU9/dfMur5xSUuyMALAgMB\nAAGjYDBeMBwGA1UdEQQVMBOCBmthZmthM4IJbG9jYWxob3N0MB0GA1UdDgQWBBRy\nSV2Q/Lysbgn8SWwSGle9zHE8bDAfBgNVHSMEGDAWgBTUMKJCPTwfljVQHTPyfqoc\n1p0UxzANBgkqhkiG9w0BAQsFAAOCAQEAtLgmsc0EB69u5fTkIdUHgZWvrN3alX2v\nLGYmqnvZj/OS93nqzl1A6/mDuCQVw30+yBvo6zSHLZsBjMW3Jsv6G3dAZYjUUZxR\n7Vx7TsTXnLcKLB+nEsttALX5MQ/p3h6Uge4qt+2+vei2bB5yDHDVm6KOPeTUAwsz\ntCs8exXZNEyjK0VnTPhO0gw2gXDil9Sue5hZJsrkVR505MXmBkLAyAv8S/Bs6TEk\n2hhP7Ex833SIdopbxaYrQAagVQXa9mAqUcQuBByqFsmokXNkTW46LUfttpWw2Kqd\nVsM1KNTlS9zfVPNlpk/T8xYnEqjKNclKcfzyfr5s/VndsDLl1XiQlQ==\n-----END CERTIFICATE-----\n
+      KAFKA_SSL_KEYSTORE_KEY: -----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC8Npu3mE4lzXSj\ndyBbT1lTs4wm7tn3AX+NJGBy4CMhE052a4FO45e6YF8FwJDiLIEQnur4A2njnsPD\n6v8okreAAl9sLuv8QPxc5nu+FedNKKzeeV2ILmLmHDQh7wdZBqVe3f9BDStVBGLn\nCzZqEAUhCdBmls2POiJavtRKFuC/OV6FArskZ3I6uFELm4RtrjvfO4dUQLlA7yMI\n/pEdZbXV2lDMvT4Je6kfk5zcfVWMFvCD41TM3BTkDiPUiW6F3M+K1yZKnK+9we8e\nvlJHqHq9Tc3y9PKcvm4/Rvxa4uEBocm/xSh/oGCMMy9K7Kdc3u7jocDU9/dfMur5\nxSUuyMALAgMBAAECggEAL9LeYVnBbaiVfR29aoYwh+yk7ZWea72FOAtouHfMZVCf\nDMcHTdDV0mU/b9o81kOBrgP7Z3aSluRWEPeqyxfwqYWw0m/fxbKLjV2BTs0I/1mZ\nB1SmV/6VYawD8SVn5A6kwYS+IbzjaFBbgyKduniEnR79xbuG0uBuL0my7np+tAfD\nMKZo+2Aw9+nzuny8PpGZAIaQYDaQ44/wH+q6GamZ7htip6l6/M4hqTtuj46N8PBg\nH8MpzDyn401Z6dL2BC6YX4UAcHW+1LydTNgVs0JQ8CRuMOqhcUPb3Doh6nrl309C\nmUMrM3A3ZyK+Z0p8vbHcDeadT/TiTnhXPoXxXrgwXQKBgQDx8QttqchAFoZyfJ2x\nq7IvUv5IANCUmqSlpyw3++1Slj/Zv+qHXND7yjaHCX8FmKW04/DqosEHI336meGz\nnCDoEOydd3VecFNeexJJ1mjYHRelkHHxh9Dm6wUUP7TmnQhTs3Mfp76asp1ukvk+\n+r8caWbJ8X3ul2FN4rHcMC9jbwKBgQDHJlbSOJWNOaYuB9MJVcyNhqR2sgmA2PqI\nFYEd2pjqabaKODYk7vQbaB4JKiY0mDyaLLqj6jk+l9QZWJanMeLCP6OG425KYoZK\n8jjzE4LT8XnBdPBoqM3vX2scqjqWFpRARdWst/IWC7rLKf1qRXmcyHQeQgaWEadD\n5c849zIvJQKBgFBy9nngmtW0p8Ap78XEcduKnUMUAkdnpJfwnqN/AcsUaubdCf84\nvcT72GXOoo4Z0//yS4m51LWq95j80jAHGmoQNp2lu0FL2GzyP4KN6Q7znYlQHpNR\ntgUS4P16sYx9audqJD3CaX7HJdI+zOJEPogUBDniMx3C+HgNiVbOLvPBAoGALNrU\nyUqXXJS0ej+m575ccS/3UQiunUfBve7iAwBeWsXuqFka0NzFPHsJ8NR+gHAdjjgu\n3YZ+2DtIOWE7pXLV+RxuT45gI/7m8nB2JUGqwOPtoYYeM+R5ZcXfETjCM1XolEVm\naB2SOCbyLppJiqsVRhvcE4iZhSl6vA9ByjnbIsUCgYEAkvHopkkdTrNxxbbZehH1\npmQZETgeZtp6fhspSC2Pz88G2s/0KLD+UW6RINoqGv2b2OIBAfNNy7+2vFlMIwaE\nCRdQda/uf3ig0U3i3P8UJl+iUDDIkicc0DZVV+x67x5aT5JIvTas1mK/jZusmCcq\nRxXDE5RRViRkmF9Ot7o0Iqc=\n-----END PRIVATE KEY-----\n
+      KAFKA_SSL_TRUESTORE_TYPE: PEM
+      KAFKA_SSL_TRUESTORE_CERTIFICATES: -----BEGIN CERTIFICATE-----\nMIIDpzCCAo+gAwIBAgIUev8E6EBbK0B3hw1My4F8Hd5jYHowDQYJKoZIhvcNAQEL\nBQAwYzEdMBsGA1UEAwwUcm9vdC5rYWZrYWV4YW1wbGUucnUxDTALBgNVBAsMBFRF\nU1QxFTATBgNVBAoMDEthZmthRXhhbXBsZTEPMA0GA1UEBwwGTW9zY293MQswCQYD\nVQQGEwJSVTAeFw0yNDExMjQwOTM5NTZaFw0yNTExMjQwOTM5NTZaMGMxHTAbBgNV\nBAMMFHJvb3Qua2Fma2FleGFtcGxlLnJ1MQ0wCwYDVQQLDARURVNUMRUwEwYDVQQK\nDAxLYWZrYUV4YW1wbGUxDzANBgNVBAcMBk1vc2NvdzELMAkGA1UEBhMCUlUwggEi\nMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDP11ELB5BK/FduJCnJ1puOB0qm\nd8fZ6d2xyjJhd4O8NdHIbg8wz5LDc0jNYgucxcWL6RI5a1+twXpADKzzPCb0Wjvp\ne71U7Al55hodpvNbfNEvAKz4FbJwsmla1iBZFgL/+iTBj+jneqPif/moP+fdtExx\n8BuLO9w2DIYkg+m0KhCD9lFA2JI3crzvCH6cZoa3GH/1l32rybAfPXsGNdiSX/qI\nkjxqWhUtWDMLFUtxHZkczaXmJqhyIEHCTcal1wcLo/c7/epYz6kNsWBj0dDnP52s\n8q0kwF8TIugARDthJnYkNM4F4mpy0CzPgaTMSFdPLGwFtVRBgbXfOjTrNabVAgMB\nAAGjUzBRMB0GA1UdDgQWBBTUMKJCPTwfljVQHTPyfqoc1p0UxzAfBgNVHSMEGDAW\ngBTUMKJCPTwfljVQHTPyfqoc1p0UxzAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3\nDQEBCwUAA4IBAQCgM5KW+Rr+kZAb2l6IiqcVC6P8lyI/k46snkddWswTAEIyZZGu\nGalFGydgWDXSEkHymMjZwdmlP03MKMYBfDe3JXc38OHO6RKpoBFdCHKmbPPwA3Yo\nGe7mi1CCwnUVo2EC9z9r7L7jLS9DLHGddEYGmFm2ZxAwZXESC7wkLSKNyjvNdrfH\n1OiYfuB1xOayjZPyr8WW1dzvLR4gnPEJK+1fKUurlqrHgXl/xqLilwQh7IuUVoek\n6ueOB+0XKcxDDOpZ2lewFU/GFR9Rs40G9Kt/PZOdizl2Ei9qL+p0z1UY2T+W9RL5\nEzIodg2HFbdVO8Ig6SJKeCEEbKEjEKcyesXH\n-----END CERTIFICATE-----\n
+      # SSL clients
+      KAFKA_SSL_CLIENT_AUTH: "required"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+    networks:
+      - kafka_lan
+    volumes:
+      - kafka3data:/kafka/data
+    healthcheck:
+      # проверка состояния контейнера. проверка происходит по готовности порта 9091
+      test: "bash -c 'printf \"\" > /dev/tcp/127.0.0.1/9091; exit $$?;'"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  kafka1data:
+    driver: local
+  kafka2data:
+    driver: local
+  kafka3data:
+    driver: local
+
+networks:
+  kafka_lan:
+    driver: bridge
