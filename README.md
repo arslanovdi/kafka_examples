@@ -36,8 +36,8 @@ CGO_ENABLED=1
 ### kafka sreams
 использование kafka sreams
 
-### authentication
-пример аутентификации
+### security
+[Примеры](https://github.com/arslanovdi/kafka_examples/tree/master/security)
 
 ### rebalance
 [Пример обработки событий ребалансировки партиций](https://github.com/arslanovdi/kafka_examples/tree/master/rebalance)

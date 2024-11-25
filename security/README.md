@@ -1,0 +1,1 @@
+[Пример SSL шифрования с использованием PEM-файлов](https://github.com/arslanovdi/kafka_examples/tree/master/security/SSL/PEM)
