@@ -24,7 +24,7 @@ func main() {
 		"security.protocol":        "ssl",
 		"ssl.key.location":         "security/SSL/PEM/certs/producer.key",        // Path to client's private key (PEM) used for authentication.
 		"ssl.certificate.location": "security/SSL/PEM/certs/producer-signed.crt", // Path to client's public key (PEM) used for authentication.
-		"ssl.ca.location":          "security/SSL/PEM/certs/root.crt",            // Path to CA certificate.
+		"ssl.ca.location":          "security/SSL/PEM/certs/rootCA.crt",          // Path to CA certificate.
 		//"enable.ssl.certificate.verification": false, // don't use in production
 		"acks": "all",
 	})

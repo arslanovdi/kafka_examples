@@ -9,44 +9,7 @@ PEM — это схема кодирования сертификатов x509 �
 Вы можете добавлять сертификаты непосредственно в файл конфигурации ваших клиентов или брокеров.
 Если вы предоставляете их в виде однострочных строк, вы должны преобразовать исходный многострочный формат в одну строку, добавив символы перевода строки ( \n ) в конце каждой строки.
 
-### Конфигурация брокера
-Так должен выглядеть раздел ssl файла свойств, при пробросе сертификатов в виде файлов:
-```
-security.protocol=SSL
-ssl.keystore.type=PEM
-ssl.keystore.location=/path/to/file/containing/certificate/chain
-ssl.key.password=<private_key_password>
-ssl.truststore.type=PEM
-ssl.truststore.location=/path/to/truststore/certificate
-```
-
-Так должен выглядеть раздел SSL файла свойств, при пробросе сертификатов в виде строк:
-```
-security.protocol=SSL
-ssl.keystore.type=PEM
-ssl.keystore.certificate.chain=-----BEGIN CERTIFICATE-----\nMIIDZjC...\n-----END CERTIFICATE-----
-ssl.keystore.key=-----BEGIN ENCRYPTED PRIVATE KEY-----\n...\n-----END ENCRYPTED PRIVATE KEY-----
-ssl.key.password=<private_key_password>
-ssl.truststore.type=PEM
-ssl.truststore.certificates=-----BEGIN CERTIFICATE-----\nMICC...\n-----END CERTIFICATE-----
-```
-
-Обратите внимание, что `ssl.keystore.certificate.chain` должен содержать ваш подписанный сертификат, а также все промежуточные сертификаты CA
-
-Ваш закрытый ключ помещается в поле `ssl.keystore.key`, а пароль для закрытого ключа (если вы его используете) помещается в поле `ssl.key.password`.
-
-Свойства `ssl.keystore.type` и `ssl.truststore.type` сообщают Kafka, в каком формате мы предоставляем сертификаты и хранилище доверенных сертификатов.
-
-Далее `ssl.keystore.location` указывает на файл, который должен содержать следующее:
-- ваш личный ключ
-- ваш подписанный сертификат
-- а также любые промежуточные сертификаты CA
-
-Вам нужно будет установить `ssl.key.password`, если ваш закрытый ключ зашифрован.
-Незашифрованные ключи допустимы при передаче ключей в виде строк, и хранении их в защищенном хранилище, Vault например.
-Убедитесь, что вы НЕ указали `ssl.keystore.password`, иначе вы получите ошибку.
-
-## Steps
+## Example step by step
 
 Все команды можно посмотреть в makefile
 
@@ -97,6 +60,57 @@ make kafka3
 - kafka3.properties - пример конфигурации брокера, которая будет принимать сертификаты в виде строки
 
 скопировать в раздел environment - kafka3 - compose.yaml
+
+Настройка брокера kafka1 с монтированием файлов сертификатов (в моем примере это kafka1, kafka2):
+```
+   environment:
+      KAFKA_LISTENERS: INTERNAL://:9091,CONTROLLER://kafka1:9093,EXTERNAL://:29092           # kafka1 - должно быть в SAN сертификата контроллера
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:9091,EXTERNAL://localhost:29092          # localhost для тестирования, в проде должно быть имя конкретной машины
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:SSL,INTERNAL:SSL,EXTERNAL:SSL         # Включаем SSL для контроллера и INTERNAL и EXTERNAL клиентов
+      # SSL use pem files
+      KAFKA_SECURITY_PROTOCOL: SSL
+      KAFKA_SSL_KEYSTORE_TYPE: PEM
+      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka1-keypair.pem
+      KAFKA_SSL_TRUSTSTORE_TYPE: PEM
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/rootCA.crt
+      # SSL clients
+      KAFKA_SSL_CLIENT_AUTH: required
+   volumes:
+      - type: bind
+        source: ./certs/kafka1-keypair.pem
+        target: /etc/kafka/secrets/kafka1-keypair.pem
+      - type: bind
+        source: ./certs/rootCA.crt
+        target: /etc/kafka/secrets/rootCA.crt
+```
+
+### Kafka-UI
+Судя по всему проверки соответствия имени хоста и поля SAN DNS сертификата не происходят.
+Менял имя хоста kafkaui, все равно все работает.
+
+Kafka-UI принимает CA сертификат только в формате jks.
+
+Следующая команда загружает rootCA.crt в файл rootCA.jks, с паролем "qwerty".
+```bash
+make kafkaui
+```
+
+Конфигурация:
+```
+   # SSL
+   KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: SSL
+   KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_TYPE: PEM
+   KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_LOCATION: /kafkaui-keypair.pem
+   KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_LOCATION: /rootCA.jks
+   KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_PASSWORD: qwerty  
+   volumes:
+      - type: bind
+        source: ./certs/kafkaui-keypair.pem
+        target: /kafkaui-keypair.pem
+      - type: bind
+        source: ./certs/rootCA.jks
+        target: /rootCA.jks
+```
 
 ## Распространенные ошибки при настройке цепочки сертификатов
 1. Если ваш закрытый ключ зашифрован, вам необходимо преобразовать его из формата PKCS#1 в формат PKCS#8, чтобы Java/Kafka могли его правильно прочитать.

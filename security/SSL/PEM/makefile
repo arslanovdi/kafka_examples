@@ -14,12 +14,12 @@ createCA:
         -days 365 \
         -newkey rsa:4096 \
         -keyout root.key \
-        -out root.crt \
+        -out rootCA.crt \
         -noenc \
         -subj "/CN=root.kafkaexample.ru/OU=TEST/O=KafkaExample/L=Moscow/C=RU"
 
 # Создаем PEM сертификаты для каждого брокера и клиентов
-SSLClients=kafka1 kafka2 kafka3 producer consumer
+SSLClients=kafka1 kafka2 kafka3 kafkaui producer consumer
 createpem:
 	for certname in $(SSLClients) ; do \
 		make .createkeypair certname=$$certname ; \
@@ -58,7 +58,7 @@ SHELL = bash
 	cd $(DIR)
 	dns2=$(DNS2)
 	openssl x509 -req \
-      -CA root.crt \
+      -CA rootCA.crt \
       -CAkey root.key \
       -in $$dns1.csr \
       -out $$dns1-signed.crt \
@@ -67,6 +67,11 @@ SHELL = bash
       -CAcreateserial \
       -extensions v3_req \
       -extfile <(cat << EOF
+	distinguished_name = req_distinguished_name
+	x509_extensions = v3_req
+	prompt = no
+	[req_distinguished_name]
+	CN = $$dns1
 	[v3_req]
 	subjectAltName = @alt_names
 	[alt_names]
@@ -87,7 +92,7 @@ config:
 	cd $(DIR)
 	consumer_cert=$$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$$0;}' consumer-signed.crt)
 	consumer_key=$$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$$0;}' consumer.key)
-	truststore_cert=$$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$$0;}' root.crt)
+	truststore_cert=$$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$$0;}' rootCA.crt)
 	DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 	echo
 	echo "Create consumer.properties with inline certificate, private key and truststore"
@@ -101,7 +106,7 @@ config:
 	"security.protocol":	"ssl",
 	"ssl.key.location":	"$$DIR/producer.key",
 	"ssl.certificate.location":	"$$DIR/producer-signed.crt",
-	"ssl.ca.location":	"$$DIR/root.crt",
+	"ssl.ca.location":	"$$DIR/rootCA.crt",
 	EOF
 
 SHELL = bash
@@ -110,7 +115,7 @@ kafka3: # create kafka3 SSL Environment properties with inline certificate, priv
 	cd $(DIR)
 	kafka3_cert=$$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$$0;}' kafka3-signed.crt)
 	kafka3_key=$$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$$0;}' kafka3.key)
-	truststore_cert=$$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$$0;}' root.crt)
+	truststore_cert=$$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$$0;}' rootCA.crt)
 	echo
 	echo "Create kafka3.properties with inline certificate, private key and truststore"
 	cat <<EOF > kafka3.properties
@@ -121,3 +126,12 @@ kafka3: # create kafka3 SSL Environment properties with inline certificate, priv
 	KAFKA_SSL_TRUSTSTORE_TYPE: PEM
 	KAFKA_SSL_TRUSTSTORE_CERTIFICATES: $$truststore_cert
 	EOF
+
+kafkaui:
+	cd $(DIR)
+	keytool -import \
+    	-file rootCA.crt \
+    	-alias "CA-cert" \
+    	-keystore rootCA.jks \
+    	-storepass qwerty \
+		-noprompt
