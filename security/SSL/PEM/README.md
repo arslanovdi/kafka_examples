@@ -68,7 +68,6 @@ make kafka3
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:9091,EXTERNAL://localhost:29092          # localhost для тестирования, в проде должно быть имя конкретной машины
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:SSL,INTERNAL:SSL,EXTERNAL:SSL         # Включаем SSL для контроллера и INTERNAL и EXTERNAL клиентов
       # SSL use pem files
-      KAFKA_SECURITY_PROTOCOL: SSL
       KAFKA_SSL_KEYSTORE_TYPE: PEM
       KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka1-keypair.pem
       KAFKA_SSL_TRUSTSTORE_TYPE: PEM
