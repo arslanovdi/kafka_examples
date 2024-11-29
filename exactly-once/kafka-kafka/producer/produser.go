@@ -102,6 +102,9 @@ func (sr *producer) Produce(topic string, key string, payload []byte) (offset in
 	event := <-deliveryChan
 	switch ev := event.(type) {
 	case *kafka.Message:
+		if ev.TopicPartition.Error != nil {
+			return nullOffset, ev.TopicPartition.Error
+		}
 		return int64(ev.TopicPartition.Offset), nil
 	case kafka.Error:
 		if ev.IsFatal() {
@@ -173,6 +176,10 @@ func New(brokers string, opts ...Options) (*producer, error) {
 				case event := <-p.Events():
 					switch ev := event.(type) {
 					case *kafka.Message:
+						if ev.TopicPartition.Error != nil {
+							slog.Error("Failed to deliver message: ", slog.String("error", ev.TopicPartition.Error.Error()))
+							return
+						}
 						slog.Info("Message produced to topic", slog.String("topic", *ev.TopicPartition.Topic), slog.Int64("offset", int64(ev.TopicPartition.Offset)))
 					case kafka.Error:
 						if ev.IsFatal() {

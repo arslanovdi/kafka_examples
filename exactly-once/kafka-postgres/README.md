@@ -1,0 +1,1 @@
+[Схема примера kafka-postgres с использованием стратегии exactly once](https://excalidraw.com/#json=B-msurFJIk4IGJqyqMQbj,0GGpT9W99LW1gQuIk5XAXg)

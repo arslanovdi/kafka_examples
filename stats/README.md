@@ -12,6 +12,9 @@
 ev := consumer.Poll(100)
 switch ev := event.(type) {
 	case *kafka.Message:
+	    if ev.TopicPartition.Error != nil {
+			// обработка ошибки
+	    }
 		// события
 	case kafka.Error:
 		// ошибки 

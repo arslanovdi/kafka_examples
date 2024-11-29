@@ -19,7 +19,7 @@ CGO_ENABLED=1
 - [kafka-kafka](https://github.com/arslanovdi/kafka_examples/tree/master/exactly-once/kafka-kafka)
 - kafka-postgres
 
-### kafka sreams
+### kafka streams
 использование kafka streams
 
 ### security

@@ -57,6 +57,10 @@ func main() {
 	event := <-deliveryChan
 	switch ev := event.(type) {
 	case *kafka.Message:
+		if ev.TopicPartition.Error != nil {
+			slog.Error("Failed to deliver message: ", slog.String("error", ev.TopicPartition.Error.Error()))
+			return
+		}
 		slog.Info("Message produced to topic", slog.String("topic", *ev.TopicPartition.Topic), slog.Int64("offset", int64(ev.TopicPartition.Offset)))
 	case kafka.Error:
 		slog.Error("Failed to produce message: ", slog.String("error", ev.Error()))

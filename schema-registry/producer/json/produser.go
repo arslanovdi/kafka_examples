@@ -51,6 +51,9 @@ func (sr *jsonProducer) ProduceMessage(key string, msg model.Human, topic string
 	event := <-deliveryChan
 	switch ev := event.(type) {
 	case *kafka.Message:
+		if ev.TopicPartition.Error != nil {
+			return nullOffset, ev.TopicPartition.Error
+		}
 		return int64(ev.TopicPartition.Offset), nil
 	case kafka.Error:
 		return nullOffset, ev

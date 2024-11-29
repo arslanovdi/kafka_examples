@@ -76,7 +76,7 @@ kakfa-acls.sh является клиентом по отношению к бр�
 docker exec kafka1 /opt/kafka/bin/kafka-acls.sh --command-config /client.properties --bootstrap-server kafka1:9091,kafka2:9091,kafka3:9091 --add --allow-principal User:producer --producer --topic topic
 ```
 
-`При подпытки записи без прав доступа librdkafka не выдает ошибку, просто возвращает offset=-1001 !`
+`При попытке записи без прав доступа librdkafka не выдает ошибку error="Broker: Topic authorization failed"`
 
 Пользователю `consumer` даем права `read` на все топики и группы, `describe` на все топики, командой:
 
